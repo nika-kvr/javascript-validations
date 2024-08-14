@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Image Upload with Drag and Drop</title>
+    <style>
+        .drop-zone {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px dashed #4CAF50;
+            border-radius: 5px;
+            text-align: center;
+            color: #4CAF50;
+            cursor: pointer;
+        }
+
+        .drop-zone.dragover {
+            background-color: #f0f0f0;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        #preview {
+            display: block;
+            max-width: 100px;
+            max-height: 100px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <form id="myForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+        <span id="nameError" class="error">Name must be at least 3 characters long.</span>
+        <br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email">
+        <span id="emailError" class="error">Email must be at least 3 characters long and end with gmail.com.</span>
+        <br><br>
+
+        <label for="number">Phone Number:</label>
+        <input type="tel" id="number" name="number"><br><br>
+
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date">
+        <span id="dateError" class="error">Date is required.</span>
+        <br><br>
+
+        <div id="dropZone" class="drop-zone">
+            Drag and drop an image here or click to upload
+        </div>
+        <input type="file" id="image" name="image" accept="image/*" style="display:none;">
+        <span id="imageError" class="error">Image is required.</span>
+        <br><br>
+
+        <img id="preview" style="display: none;"/><br><br>
+
+        <button type="submit" id="submitBtn" disabled>Submit</button>
+    </form>
+
+    <script>
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const dateInput = document.getElementById('date');
+        const imageInput = document.getElementById('image');
+        const dropZone = document.getElementById('dropZone');
+        const preview = document.getElementById('preview');
+        const submitBtn = document.getElementById('submitBtn');
+
+        const nameError = document.getElementById('nameError');
+        const emailError = document.getElementById('emailError');
+        const dateError = document.getElementById('dateError');
+        const imageError = document.getElementById('imageError');
+
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('name', nameInput.value);
+            localStorage.setItem('email', emailInput.value);
+            localStorage.setItem('date', dateInput.value);
+
+            if (imageInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    localStorage.setItem('image', event.target.result);
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            }
+        }
+
+        // Load data from localStorage
+        function loadFromLocalStorage() {
+            nameInput.value = localStorage.getItem('name') || '';
+            emailInput.value = localStorage.getItem('email') || '';
+            dateInput.value = localStorage.getItem('date') || '';
+
+            const imageData = localStorage.getItem('image');
+            if (imageData) {
+                preview.src = imageData;
+                preview.style.display = 'block';
+            }
+
+            validateForm(); // Validate form on page load with the loaded data
+        }
+
+        // Validate Name
+        function validateName() {
+            if (nameInput.value.length < 3) {
+                nameError.style.display = 'inline';
+            } else {
+                nameError.style.display = 'none';
+            }
+            saveToLocalStorage();
+            validateForm();
+        }
+
+        // Validate Email
+        function validateEmail() {
+            if (emailInput.value.length < 3 || !emailInput.value.endsWith('gmail.com')) {
+                emailError.style.display = 'inline';
+            } else {
+                emailError.style.display = 'none';
+            }
+            saveToLocalStorage();
+            validateForm();
+        }
+
+        // Validate Date
+        function validateDate() {
+            if (dateInput.value === '') {
+                dateError.style.display = 'inline';
+            } else {
+                dateError.style.display = 'none';
+            }
+            saveToLocalStorage();
+            validateForm();
+        }
+
+        // Validate Image
+        function validateImage() {
+            if (imageInput.files.length === 0) {
+                imageError.style.display = 'inline';
+            } else {
+                imageError.style.display = 'none';
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    saveToLocalStorage();
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            }
+            validateForm();
+        }
+
+        // Drag and Drop functionality
+        dropZone.addEventListener('dragover', function(event) {
+            event.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(event) {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(event) {
+            event.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                imageInput.files = files; // Assign the dropped file to the file input
+                validateImage(); // Validate and process the dropped file
+            }
+        });
+
+        // Make drop zone clickable
+        dropZone.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        // Validate Form and Enable Submit Button
+        function validateForm() {
+            const nameValid = nameInput.value.length >= 3;
+            const emailValid = emailInput.value.length >= 3 && emailInput.value.endsWith('gmail.com');
+            const dateValid = dateInput.value !== '';
+            const imageValid = imageInput.files.length > 0 || localStorage.getItem('image');
+
+            submitBtn.disabled = !(nameValid && emailValid && dateValid && imageValid);
+        }
+
+        // Load data on page load
+        window.onload = loadFromLocalStorage;
+
+        // Event Listeners for validation and saving data
+        nameInput.addEventListener('input', validateName);
+        emailInput.addEventListener('input', validateEmail);
+        dateInput.addEventListener('change', validateDate);
+        imageInput.addEventListener('change', validateImage);
+    </script>
+</body>
+</html>
